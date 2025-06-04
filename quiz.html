@@ -1,0 +1,325 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Quiz Game</title>
+<style>
+  :root {
+    --primary-color: #4e54c8;
+    --secondary-color: #8f94fb;
+    --accent-color: #ff6f61;
+    --bg-color: #f4f6ff;
+    --text-color: #333;
+    --font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+  }
+  * {
+    box-sizing: border-box;
+  }
+  body {
+    margin: 0;
+    font-family: var(--font-family);
+    background: var(--bg-color);
+    color: var(--text-color);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    height: 100vh;
+    padding: 1rem;
+  }
+  #app {
+    background: white;
+    border-radius: 12px;
+    box-shadow: 0 8px 20px rgba(78, 84, 200, 0.15);
+    width: 100%;
+    max-width: 480px;
+    padding: 2rem;
+    display: flex;
+    flex-direction: column;
+  }
+  h1, h2 {
+    margin: 0 0 1rem 0;
+    font-weight: 700;
+    text-align: center;
+    color: var(--primary-color);
+  }
+  #start-screen, #quiz-screen, #result-screen {
+    display: none;
+    flex-direction: column;
+    align-items: center;
+  }
+  .active {
+    display: flex;
+  }
+  button {
+    background: var(--primary-color);
+    border: none;
+    color: white;
+    padding: 0.75rem 1.5rem;
+    border-radius: 8px;
+    font-size: 1.15rem;
+    cursor: pointer;
+    transition: background-color 0.3s ease;
+    margin-top: 1rem;
+  }
+  button:hover:not(:disabled) {
+    background: var(--accent-color);
+  }
+  button:disabled {
+    background: #ccc;
+    cursor: not-allowed;
+  }
+  #question-container {
+    width: 100%;
+    display: flex;
+    flex-direction: column;
+  }
+  #question {
+    font-size: 1.25rem;
+    margin-bottom: 1.5rem;
+    min-height: 3rem;
+  }
+  .answer-buttons {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 1rem;
+  }
+  .btn-answer {
+    background: var(--secondary-color);
+    border: none;
+    color: white;
+    padding: 1rem;
+    border-radius: 8px;
+    font-weight: 600;
+    font-size: 1rem;
+    cursor: pointer;
+    transition: background-color 0.3s ease;
+  }
+  .btn-answer:hover {
+    background: var(--accent-color);
+  }
+  .btn-answer.correct {
+    background: #4caf50;
+  }
+  .btn-answer.wrong {
+    background: #e53935;
+  }
+  #timer {
+    font-weight: 700;
+    font-size: 1rem;
+    text-align: center;
+    margin-bottom: 1rem;
+    color: var(--accent-color);
+  }
+  #score {
+    font-size: 1.25rem;
+    color: var(--primary-color);
+  }
+  @media (max-width: 480px) {
+    .answer-buttons {
+      grid-template-columns: 1fr;
+    }
+  }
+</style>
+</head>
+<body>
+<div id="app">
+  <section id="start-screen" class="active">
+    <h1>Welcome to the Quiz Game!</h1>
+    <p style="text-align:center;">Test your knowledge with multiple-choice questions.</p>
+    <button id="start-btn">Start Quiz</button>
+  </section>
+
+  <section id="quiz-screen">
+    <div id="timer">Time left: <span id="time-remaining">15</span>s</div>
+    <div id="question-container">
+      <div id="question">Question text</div>
+      <div class="answer-buttons">
+        <button class="btn-answer" data-index="0"></button>
+        <button class="btn-answer" data-index="1"></button>
+        <button class="btn-answer" data-index="2"></button>
+        <button class="btn-answer" data-index="3"></button>
+      </div>
+    </div>
+  </section>
+
+  <section id="result-screen">
+    <h2>Quiz Complete!</h2>
+    <p id="score"></p>
+    <button id="restart-btn">Play Again</button>
+  </section>
+</div>
+
+<script>
+  const startBtn = document.getElementById('start-btn');
+  const restartBtn = document.getElementById('restart-btn');
+  const startScreen = document.getElementById('start-screen');
+  const quizScreen = document.getElementById('quiz-screen');
+  const resultScreen = document.getElementById('result-screen');
+  const questionEl = document.getElementById('question');
+  const answerButtons = document.querySelectorAll('.btn-answer');
+  const timeRemainingEl = document.getElementById('time-remaining');
+  const scoreEl = document.getElementById('score');
+
+  const questions = [
+    {
+      question: "What is the capital city of France?",
+      answers: ["Paris", "Madrid", "Rome", "Berlin"],
+      correctIndex: 0
+    },
+    {
+      question: "Which planet is known as the Red Planet?",
+      answers: ["Earth", "Venus", "Mars", "Jupiter"],
+      correctIndex: 2
+    },
+    {
+      question: "Who wrote the novel '1984'?",
+      answers: ["Aldous Huxley", "George Orwell", "J.K. Rowling", "Mark Twain"],
+      correctIndex: 1
+    },
+    {
+      question: "What is the chemical symbol for water?",
+      answers: ["H2O", "O2", "CO2", "NaCl"],
+      correctIndex: 0
+    },
+    {
+      question: "Which language is primarily spoken in Brazil?",
+      answers: ["Spanish", "Portuguese", "French", "English"],
+      correctIndex: 1
+    },
+    {
+      question: "What is the smallest prime number?",
+      answers: ["0", "1", "2", "3"],
+      correctIndex: 2
+    },
+    {
+      question: "Which organ in the human body filters blood?",
+      answers: ["Heart", "Kidney", "Liver", "Lungs"],
+      correctIndex: 1
+    },
+    {
+      question: "What year did the first man land on the moon?",
+      answers: ["1965", "1969", "1972", "1959"],
+      correctIndex: 1
+    },
+    {
+      question: "Who painted the Mona Lisa?",
+      answers: ["Michelangelo", "Leonardo da Vinci", "Raphael", "Vincent van Gogh"],
+      correctIndex: 1
+    },
+    {
+      question: "In computing, what does CPU stand for?",
+      answers: ["Central Process Unit", "Central Processing Unit", "Computer Personal Unit", "Central Performance Unit"],
+      correctIndex: 1
+    }
+  ];
+
+  let currentQuestionIndex = 0;
+  let score = 0;
+  let timer;
+  let timeLeft = 15;
+  const maxTime = 15;
+  let acceptingAnswers = true;
+
+  function startQuiz() {
+    score = 0;
+    currentQuestionIndex = 0;
+    timeLeft = maxTime;
+    startScreen.classList.remove('active');
+    resultScreen.classList.remove('active');
+    quizScreen.classList.add('active');
+    acceptingAnswers = true;
+    setNextQuestion();
+    startTimer();
+  }
+
+  function startTimer() {
+    clearInterval(timer);
+    timeLeft = maxTime;
+    timeRemainingEl.textContent = timeLeft;
+    timer = setInterval(() => {
+      timeLeft--;
+      timeRemainingEl.textContent = timeLeft;
+      if (timeLeft <= 0) {
+        clearInterval(timer);
+        acceptAnswer(null); // No answer selected
+      }
+    }, 1000);
+  }
+
+  function setNextQuestion() {
+    acceptingAnswers = true;
+    resetState();
+    showQuestion(questions[currentQuestionIndex]);
+  }
+
+  function showQuestion(questionObj) {
+    questionEl.textContent = questionObj.question;
+    answerButtons.forEach((button, index) => {
+      button.textContent = questionObj.answers[index];
+      button.disabled = false;
+      button.classList.remove('correct', 'wrong');
+    });
+  }
+
+  function resetState() {
+    answerButtons.forEach(button => {
+      button.disabled = false;
+      button.classList.remove('correct', 'wrong');
+    });
+  }
+
+  function acceptAnswer(selectedIndex) {
+    if (!acceptingAnswers) return;
+    acceptingAnswers = false;
+    clearInterval(timer);
+    const question = questions[currentQuestionIndex];
+    const correctIndex = question.correctIndex;
+
+    answerButtons.forEach((button, index) => {
+      button.disabled = true;
+      if (index === correctIndex) {
+        button.classList.add('correct');
+      }
+      if (selectedIndex !== null && index === selectedIndex && selectedIndex !== correctIndex) {
+        button.classList.add('wrong');
+      }
+    });
+
+    if (selectedIndex === correctIndex) {
+      score++;
+    }
+
+    setTimeout(() => {
+      currentQuestionIndex++;
+      if (currentQuestionIndex < questions.length) {
+        setNextQuestion();
+        startTimer();
+      } else {
+        showResults();
+      }
+    }, 1500);
+  }
+
+  function showResults() {
+    quizScreen.classList.remove('active');
+    resultScreen.classList.add('active');
+    scoreEl.textContent = You scored ${score} out of ${questions.length};
+  }
+
+  answerButtons.forEach(button => {
+    button.addEventListener('click', (e) => {
+      const selectedIndex = parseInt(e.target.getAttribute('data-index'));
+      acceptAnswer(selectedIndex);
+    });
+  });
+
+  startBtn.addEventListener('click', startQuiz);
+  restartBtn.addEventListener('click', () => {
+    startScreen.classList.add('active');
+    resultScreen.classList.remove('active');
+    quizScreen.classList.remove('active');
+  });
+</script>
+</body>
+</html>
